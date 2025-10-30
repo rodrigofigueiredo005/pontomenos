@@ -1,0 +1,25 @@
+# Credenciais e dados sensíveis
+.env
+.env.local
+credentials.js
+
+# Node
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+

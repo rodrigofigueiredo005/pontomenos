@@ -1,0 +1,44 @@
+{
+  "name": "Ponto Menos",
+  "short_name": "Ponto Menos",
+  "description": "Para bater ponto e consultar banco de horas sem um Super App",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#111111",
+  "background_color": "#f6f7fb",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
+  "shortcuts": [
+    {
+      "name": "Bater Ponto",
+      "short_name": "Ponto",
+      "description": "Abrir e bater ponto rapidamente",
+      "url": "./index.html",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
+

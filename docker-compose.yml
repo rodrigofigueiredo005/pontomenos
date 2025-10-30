@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  pontomenos:
+    build: .
+    container_name: pontomenos
+    ports:
+      - "8000:8000"  # Frontend
+      - "8787:8787"  # Proxy API
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+

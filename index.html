@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Ponto Menos</title>
+  
+  <!-- Favicons -->
+  <link rel="icon" type="image/x-icon" href="icons/favicon.ico"/>
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png"/>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#111111"/>
+  <meta name="description" content="Para bater ponto e consultar banco de horas sem um Super App"/>
+  
+  <!-- Mobile Web App -->
+  <meta name="mobile-web-app-capable" content="yes"/>
+  
+  <!-- iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Ponto Menos"/>
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css"/>
+  
+  <!-- Config (carrega primeiro para detecção de path) -->
+  <script type="module" src="config.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Ponto Menos</h1>
+    <p class="hint" style="margin-top:-8px; margin-bottom:16px;">Para bater ponto e consultar banco de horas sem um "Super App"</p>
+
+    <!-- Tela de Login -->
+    <div id="loginScreen" style="display:none;">
+      <div class="card">
+        <h3 style="margin-bottom:16px;">Login</h3>
+        <div style="margin-bottom:12px;">
+          <label style="display:block;margin-bottom:4px;font-size:14px;">E-mail</label>
+          <input id="email" placeholder="nome@studiosol.com.br"/>
+        </div>
+        <div style="margin-bottom:16px;">
+          <label style="display:block;margin-bottom:4px;font-size:14px;">Senha</label>
+          <input id="password" type="password" placeholder="••••••••"/>
+        </div>
+        <div>
+          <button id="loginBtn" style="width:100%;">Entrar</button>
+        </div>
+        <span id="loginStatus" class="hint" style="display:block;margin-top:12px;text-align:center;"></span>
+      </div>
+    </div>
+
+    <!-- Painel Principal -->
+    <div id="mainPanel" style="display:none;">
+      <div class="card">
+        <!-- Botões no topo -->
+        <div class="row" style="gap:8px;">
+          <button id="punchBtn" class="primary" style="flex:1;">Bater Ponto</button>
+          <button class="secondary" id="refreshBtn" style="flex:0.5;">Atualizar</button>
+          <button class="secondary" id="logoutBtn" style="flex:0.5;">Sair</button>
+        </div>
+
+        <!-- Linha 1: Último ponto e Banco de horas -->
+        <div class="row" style="margin-top:12px;">
+          <div class="col kpi" style="flex:1;">
+            <div class="label">Último ponto</div>
+            <div class="ultimo-ponto-info">
+              <div class="value" id="ultimoPontoData" style="margin:0;">—</div>
+              <div class="value" id="ultimoPontoHora" style="margin:0;">—</div>
+            </div>
+          </div>
+          <div class="col kpi" style="flex:1;">
+            <div class="label">
+              Banco de horas
+              <span class="tooltip-icon" id="tooltipBanco" style="display:none;">
+                <span class="icon">ⓘ</span>
+                <span class="tooltip-text" id="tooltipBancoText"></span>
+              </span>
+            </div>
+            <div class="banco-info">
+              <div class="value" id="bancoHoras" style="margin:0;">—</div>
+              <small class="hint" id="bancoVencimento" style="white-space:nowrap; font-size:11px;"></small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Linha 2: Horas trabalhadas hoje, Finalizar dia às, Horário limite -->
+        <div class="row" style="margin-top:8px;">
+          <div class="col kpi">
+            <div class="label">Horas trabalhadas hoje</div>
+            <div class="value" id="horasHoje">—</div>
+          </div>
+          <div class="col kpi">
+            <div class="label">
+              Finalizar dia às
+              <span class="tooltip-icon" id="tooltipFinalizar">
+                <span class="icon">ⓘ</span>
+                <span class="tooltip-text" id="tooltipFinalizarText"></span>
+              </span>
+            </div>
+            <div class="value" id="finalizarAs">—</div>
+          </div>
+          <div class="col kpi">
+            <div class="label">
+              Horário limite
+              <span class="tooltip-icon" id="tooltipLimite">
+                <span class="icon">ⓘ</span>
+                <span class="tooltip-text" id="tooltipLimiteText"></span>
+              </span>
+            </div>
+            <div class="value" id="horarioLimite">—</div>
+          </div>
+        </div>
+
+        <div class="punch-list">
+          <h4>Pontos batidos hoje</h4>
+          <div id="punchList"></div>
+        </div>
+      </div>
+
+      <div class="footer-hints">
+        <p class="hint">Dica: após rodar no celular, use "Adicionar à Tela Inicial" para abrir como app.</p>
+        <p class="hint">Reporte bugs <a href="https://github.com/rodrigofigueiredo005/pontomenos/issues" target="_blank">aqui</a></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Modal de Confirmação de Ponto -->
+  <div class="modal-overlay" id="punchModal">
+    <div class="modal">
+      <h3>Confirmar registro de ponto</h3>
+      
+      <p class="hint">Selecione a localização:</p>
+      <div id="locationOptions"></div>
+
+      <div class="modal-buttons">
+        <button class="secondary" id="cancelPunchBtn">Cancelar</button>
+        <button id="confirmPunchBtn">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script type="module" src="app.js"></script>
+
+</body>
+</html>
