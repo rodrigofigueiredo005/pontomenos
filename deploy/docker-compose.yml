@@ -2,11 +2,13 @@ version: '3.8'
 
 services:
   pontomenos:
-    build: .
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
     container_name: pontomenos
     ports:
-      - "8000:8000"  # Frontend
-      - "8787:8787"  # Proxy API
+      - "8000:8000"
+      - "8787:8787"
     restart: unless-stopped
     environment:
       - NODE_ENV=production

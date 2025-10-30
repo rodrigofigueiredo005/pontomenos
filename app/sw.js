@@ -1,4 +1,3 @@
-// Service Worker para Ponto Menos
 const CACHE_NAME = 'ponto-menos-v3';
 const urlsToCache = [
   './index.html',
@@ -11,7 +10,6 @@ const urlsToCache = [
   './credentials.js'
 ];
 
-// Instalação - cachear recursos
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -20,7 +18,6 @@ self.addEventListener('install', event => {
   );
 });
 
-// Ativação - limpar caches antigos
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -35,9 +32,7 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch - estratégia Network First (para sempre ter dados frescos da API)
 self.addEventListener('fetch', event => {
-  // Apenas para GET requests
   if (event.request.method !== 'GET') {
     return;
   }
@@ -45,7 +40,6 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Se a resposta é válida, cacheia e retorna
         if (response && response.status === 200) {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then(cache => {
@@ -55,7 +49,6 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
-        // Se falhar (offline), tenta buscar do cache
         return caches.match(event.request).then(response => {
           return response || new Response('Offline - sem cache disponível', {
             status: 503,

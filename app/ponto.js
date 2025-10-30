@@ -1,23 +1,11 @@
-// =================== Punch (Bater Ponto) ===================
-
 import { authData, sessionData, API_BASE } from './api.js';
 
-// Localização selecionada no modal
 let selectedLocation = null;
-
-// Localização GPS atual
 let currentGPSLocation = null;
-
-// Localização do último ponto (para usar como opção no modal)
 export let lastPunchLocation = null;
-
-// UUID do dispositivo
 let deviceUUID = localStorage.getItem('device_uuid') || generateUUID();
 
-// =================== UUID Generation ===================
-
 function generateUUID(){
-  // Função oficial do app PontoMais (usa timestamp + random)
   let it = (new Date).getTime();
   const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(Ft){
     let cn = (it + 16 * Math.random()) % 16 | 0;
@@ -28,8 +16,6 @@ function generateUUID(){
   localStorage.setItem('device_uuid', uuid);
   return uuid;
 }
-
-// =================== Geolocation ===================
 
 function getCurrentPosition(){
   return new Promise((resolve, reject) => {
@@ -52,10 +38,8 @@ async function reverseGeocode(lat, lng){
     if(!res.ok) throw new Error('Erro na geocodificação');
     const data = await res.json();
     const addr = data.address || {};
-    // Monta endereço simples: rua, número, bairro, cidade
     const parts = [];
     
-    // Rua + número (se houver)
     if(addr.road){
       if(addr.house_number){
         parts.push(`${addr.road}, ${addr.house_number}`);
@@ -64,12 +48,10 @@ async function reverseGeocode(lat, lng){
       }
     }
     
-    // Bairro
     if(addr.suburb || addr.neighbourhood){
       parts.push(addr.suburb || addr.neighbourhood);
     }
     
-    // Cidade
     if(addr.city || addr.town){
       parts.push(addr.city || addr.town);
     }
@@ -80,21 +62,16 @@ async function reverseGeocode(lat, lng){
   }
 }
 
-// =================== Address Utils ===================
-
 export function cleanAddress(address){
   if(!address) return '';
-  // Remove CEP (padrão: 12345-678), estado (2 letras maiúsculas), e país
   let cleaned = address
-    .replace(/,?\s*\d{5}-\d{3}\s*,?/g, '') // Remove CEP
-    .replace(/\s*-\s*[A-Z]{2}\s*,?/g, '') // Remove estado (ex: " - MG")
-    .replace(/,?\s*Brazil\s*$/i, '') // Remove "Brazil" no final
-    .replace(/,\s*,/g, ',') // Remove vírgulas duplicadas
+    .replace(/,?\s*\d{5}-\d{3}\s*,?/g, '')
+    .replace(/\s*-\s*[A-Z]{2}\s*,?/g, '')
+    .replace(/,?\s*Brazil\s*$/i, '')
+    .replace(/,\s*,/g, ',')
     .trim();
   return cleaned;
 }
-
-// =================== Modal de Ponto ===================
 
 export async function openPunchModal(els, onToast){
   try {
@@ -127,13 +104,9 @@ export async function openPunchModal(els, onToast){
       reference_id: null
     };
 
-    // Define como selecionada inicialmente
     selectedLocation = currentGPSLocation;
-
-    // Monta lista de opções
     const options = [];
 
-    // 1. Localização GPS atual
     options.push({
       type: 'gps',
       icon: '📍',
@@ -142,7 +115,6 @@ export async function openPunchModal(els, onToast){
       data: currentGPSLocation
     });
 
-    // 2. Último ponto batido
     if(lastPunchLocation && lastPunchLocation.address){
       options.push({
         type: 'last',
@@ -153,7 +125,6 @@ export async function openPunchModal(els, onToast){
       });
     }
 
-    // 3. Locais favoritos
     const refs = sessionData.employee.location_references || [];
     refs.forEach(ref => {
       options.push({
@@ -184,7 +155,6 @@ export async function openPunchModal(els, onToast){
       </div>
     `).join('');
 
-    // Event listeners para selecionar opção
     els.locationOptions.querySelectorAll('.location-option').forEach(opt => {
       opt.addEventListener('click', () => {
         els.locationOptions.querySelectorAll('.location-option').forEach(o => o.classList.remove('selected'));
@@ -207,7 +177,6 @@ export function closePunchModal(els){
 
 export async function confirmPunch(els, onToast, onRefresh){
   try {
-    // Importa configuração e credenciais
     const { PROXY_URL, USE_PROXY } = await import('./config.js');
     const { CREDENTIALS } = await import('./credentials.js');
     
@@ -219,7 +188,6 @@ export async function confirmPunch(els, onToast, onRefresh){
     els.confirmPunchBtn.disabled = true;
     onToast('Registrando ponto...');
 
-    // Usa credenciais do arquivo se preenchidas, senão usa authData normal
     const token = CREDENTIALS.HARDCODED_TOKEN || authData.token;
     const client_id = CREDENTIALS.HARDCODED_CLIENT_ID || authData.client;
     const login = CREDENTIALS.HARDCODED_LOGIN || authData.uid;
@@ -228,7 +196,6 @@ export async function confirmPunch(els, onToast, onRefresh){
     const last_sign_in_ip = CREDENTIALS.HARDCODED_LAST_SIGN_IN_IP || authData.lastSignInIp;
     const last_sign_in_at = CREDENTIALS.HARDCODED_LAST_SIGN_IN_AT || authData.lastSignInAt;
 
-    // Monta o payload EXATAMENTE como o que funciona
     const payload = {
       image: null,
       employee: sessionData?.employee || { id: null, pin: null },
@@ -272,7 +239,6 @@ export async function confirmPunch(els, onToast, onRefresh){
       }
     };
 
-    // Headers
     const headers = {
       'client': client_id,
       'access-token': token,
@@ -282,13 +248,11 @@ export async function confirmPunch(els, onToast, onRefresh){
       'content-type': 'application/json'
     };
 
-    // Se não estiver usando proxy, adiciona origin e referer (embora não funcione no browser)
     if(!USE_PROXY) {
       headers['origin'] = 'https://app2.pontomais.com.br';
       headers['referer'] = 'https://app2.pontomais.com.br/';
     }
 
-    // Usa o proxy se estiver habilitado, senão tenta direto (vai dar 403 por CORS)
     const apiUrl = USE_PROXY ? PROXY_URL : `${API_BASE}/api/time_cards/register`;
     
     const res = await fetch(apiUrl, {
@@ -309,13 +273,10 @@ export async function confirmPunch(els, onToast, onRefresh){
     onToast('Ponto registrado com sucesso!');
     closePunchModal(els);
     
-    // Se retornou 202 (processamento assíncrono), adiciona temporariamente na UI
     if (res.status === 202) {
       addTemporaryPunch(els, selectedLocation);
-      // Aguarda 2s e atualiza para pegar o ponto real da API
       setTimeout(() => onRefresh(), 2000);
     } else {
-      // Se retornou 200, atualiza normalmente
       await onRefresh();
     }
 
@@ -330,19 +291,14 @@ export async function baterPonto(els, onToast){
   await openPunchModal(els, onToast);
 }
 
-// =================== Temporary Punch (UI Helper) ===================
-
 function addTemporaryPunch(els, location){
-  // Adiciona um ponto temporário na UI enquanto a API processa (202)
   const now = new Date();
   const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   const dateStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
   
-  // Atualiza o "Último ponto"
   els.ultimoPontoData.textContent = dateStr;
   els.ultimoPontoHora.textContent = timeStr;
   
-  // Adiciona na lista visual temporariamente
   const tempPunchHtml = `
     <div class="punch-item" style="opacity: 0.7; border: 1px dashed #999;">
       <div class="top">
@@ -354,15 +310,12 @@ function addTemporaryPunch(els, location){
     </div>
   `;
   
-  // Adiciona no topo da lista
   if(els.punchList.querySelector('.punch-item')) {
     els.punchList.insertAdjacentHTML('afterbegin', tempPunchHtml);
   } else {
     els.punchList.innerHTML = tempPunchHtml;
   }
 }
-
-// =================== Export para uso em app.js ===================
 
 export function setLastPunchLocation(location){
   lastPunchLocation = location;

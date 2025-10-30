@@ -1,5 +1,3 @@
-// =================== Main App ===================
-
 import { 
   loadCfg, 
   isLoggedIn, 
@@ -23,8 +21,6 @@ import {
   cleanAddress,
   setLastPunchLocation 
 } from './ponto.js';
-
-// =================== DOM Utils ===================
 
 const $$ = sel => document.querySelector(sel);
 
@@ -59,8 +55,6 @@ const els = {
   tooltipLimiteText: $$('#tooltipLimiteText')
 };
 
-// =================== UI Helpers ===================
-
 function toast(msg){ 
   els.toast.textContent = msg; 
   els.toast.classList.add('show'); 
@@ -82,30 +76,17 @@ function showScreen(){
 }
 
 function setupTooltips(isCLT){
-  // Configura tooltips baseado no tipo de funcionário
   if(isCLT){
-    // CLT: esconde tooltip de banco de horas
     els.tooltipBanco.style.display = 'none';
-    
-    // Finalizar dia às
     els.tooltipFinalizarText.textContent = 'Horário em que sua jornada completa 8 horas';
-    
-    // Horário limite
     els.tooltipLimiteText.textContent = 'A partir desse horário, será contada hora extra. Faça isso apenas se tiver autorização da liderança';
   } else {
-    // Estagiário: mostra tooltip de banco de horas
     els.tooltipBanco.style.display = 'inline-block';
     els.tooltipBancoText.textContent = 'Não se aplica a estagiários';
-    
-    // Finalizar dia às
     els.tooltipFinalizarText.textContent = 'Horário em que sua jornada completa 6 horas';
-    
-    // Horário limite
     els.tooltipLimiteText.textContent = 'A partir desse horário, será contada hora extra';
   }
 }
-
-// =================== Render ===================
 
 function renderPunchList(cards){
   if(!cards || cards.length === 0){
@@ -139,30 +120,22 @@ function renderPunchList(cards){
   els.punchList.innerHTML = items;
 }
 
-// =================== Refresh ===================
-
 async function refreshAll(){
   try{
     toast('Atualizando...');
-    const todayISO = getTodayISO(); // YYYY-MM-DD na timezone local
+    const todayISO = getTodayISO();
 
     const sess = await fetchSession();
-    
-    // Configura tooltips baseado no tipo de funcionário
     setupTooltips(sess.isCLT);
-    
-    // Banco de horas
     if(typeof sess.timeBalanceSec === 'number'){
       els.bancoHoras.textContent = msToHHMM(sess.timeBalanceSec * 1000);
     } else {
       els.bancoHoras.textContent = '—';
     }
     
-    // Data de vencimento do banco
     const expirationDate = getNextBankExpiration();
     els.bancoVencimento.textContent = `Vence em ${String(expirationDate.getDate()).padStart(2,'0')}/${String(expirationDate.getMonth()+1).padStart(2,'0')}/${expirationDate.getFullYear()}`;
     
-    // Último ponto (se vier no /session)
     if(sess.lastPunchDate && sess.lastPunchTime){
       els.ultimoPontoData.textContent = sess.lastPunchDate;
       els.ultimoPontoHora.textContent = sess.lastPunchTime;
@@ -171,18 +144,15 @@ async function refreshAll(){
       els.ultimoPontoHora.textContent = '';
     }
 
-    // Batidas do dia (para Horas Hoje e Finalizar às)
     const cards = await fetchWorkDay(todayISO, sess.employeeId || undefined);
     const workedMs = calcWorkedMsToday(cards);
     els.horasHoje.textContent = msToHHMM(workedMs);
 
-    // Último ponto (mais preciso pelos cards, se existir)
     if(cards.length > 0){
       const last = cards[cards.length - 1];
       els.ultimoPontoData.textContent = last.date;
       els.ultimoPontoHora.textContent = last.time;
       
-      // Salva localização do último ponto para usar no modal
       if(last.latitude && last.longitude){
         setLastPunchLocation({
           latitude: last.latitude,
@@ -199,16 +169,13 @@ async function refreshAll(){
       }
     }
 
-    // Define meta de horas: 6h para estagiário, 8h para CLT
     const targetHours = sess.isCLT ? 8 : 6;
     const endAt = calcExpectedEnd(cards, targetHours);
     els.finalizarAs.textContent = endAt ? fmtTime(endAt) : '—';
 
-    // Horário limite: igual ao finalizar dia para estagiário, regras complexas para CLT
     const limitTime = calcLimitTime(cards, workedMs, sess.isCLT, endAt);
     els.horarioLimite.textContent = limitTime ? fmtTime(limitTime) : '—';
 
-    // Renderizar lista de pontos
     renderPunchList(cards);
 
     toast('Atualizado!');
@@ -216,8 +183,6 @@ async function refreshAll(){
     toast('Erro ao atualizar');
   }
 }
-
-// =================== Event Handlers ===================
 
 async function handleLogin(){
   try {
@@ -248,8 +213,6 @@ async function handleConfirmPunch(){
   await confirmPunch(els, toast, refreshAll);
 }
 
-// =================== Event Listeners ===================
-
 els.loginBtn.addEventListener('click', handleLogin);
 els.logoutBtn.addEventListener('click', handleLogout);
 els.refreshBtn.addEventListener('click', refreshAll);
@@ -257,7 +220,6 @@ els.punchBtn.addEventListener('click', handlePunch);
 els.cancelPunchBtn.addEventListener('click', handleCancelPunch);
 els.confirmPunchBtn.addEventListener('click', handleConfirmPunch);
 
-// Permite fazer login pressionando Enter nos campos de email e senha
 els.email.addEventListener('keypress', (e) => {
   if(e.key === 'Enter') handleLogin();
 });
@@ -265,40 +227,32 @@ els.password.addEventListener('keypress', (e) => {
   if(e.key === 'Enter') handleLogin();
 });
 
-// Tooltips: clique para mobile (toggle)
 [els.tooltipBanco, els.tooltipFinalizar, els.tooltipLimite].forEach(tooltip => {
   if(tooltip){
     tooltip.addEventListener('click', (e) => {
       e.stopPropagation();
-      // Remove active de todos
       [els.tooltipBanco, els.tooltipFinalizar, els.tooltipLimite].forEach(t => {
         if(t && t !== tooltip) t.classList.remove('active');
       });
-      // Toggle no clicado
       tooltip.classList.toggle('active');
     });
   }
 });
 
-// Fecha tooltips ao clicar fora
 document.addEventListener('click', () => {
   [els.tooltipBanco, els.tooltipFinalizar, els.tooltipLimite].forEach(t => {
     if(t) t.classList.remove('active');
   });
 });
 
-// Fecha modal ao clicar fora
 els.punchModal.addEventListener('click', (e) => {
   if(e.target === els.punchModal) handleCancelPunch();
 });
-
-// =================== Initialization ===================
 
 loadCfg();
 showScreen();
 if(isLoggedIn()){ refreshAll(); }
 
-// Registrar Service Worker para PWA
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js')
     .then(reg => console.log('Service Worker registrado', reg))
