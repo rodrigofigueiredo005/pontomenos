@@ -5,8 +5,8 @@ const BASE_PATH = (() => {
 })();
 
 export const PROXY_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:8787/api/time_cards/register'
-  : `${window.location.protocol}//${window.location.host}/pontomenos-api/api/time_cards/register`;
+  ? 'http://localhost:9993/api/time_cards/register'
+  : `${window.location.protocol}//${window.location.host}/api/time_cards/register`;
 
 export const USE_PROXY = true;
 

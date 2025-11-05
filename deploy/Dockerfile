@@ -1,13 +1,14 @@
-FROM node:20-alpine
+FROM node:24
 
-WORKDIR /app
-
-RUN npm install -g http-server
+WORKDIR /pontomenos
 
 COPY server.js .
 COPY app/ ./app/
+COPY package.json .
 
-EXPOSE 8000 8787
+RUN npm install
 
-CMD ["sh", "-c", "node server.js & http-server app -p 8000 -c-1 --cors"]
+EXPOSE 9993
+
+CMD ["node", "server.js"]
 

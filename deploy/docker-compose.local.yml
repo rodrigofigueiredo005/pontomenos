@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  pontomenos:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: pontomenos:local
+    container_name: pontomenos-local
+    ports:
+      - "9993:9993"
+    environment:
+      - TZ=America/Sao_Paulo
+      - NODE_ENV=development
+      - PORT=9993
+    restart: unless-stopped

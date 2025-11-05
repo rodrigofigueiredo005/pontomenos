@@ -2,14 +2,21 @@ version: '3.8'
 
 services:
   pontomenos:
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile
     container_name: pontomenos
-    ports:
-      - "8000:8000"
-      - "8787:8787"
+    image: node:24
     restart: unless-stopped
+    working_dir: /pontomenos
+    volumes:
+      - /volume1/docker/pontomenos:/pontomenos:rw
     environment:
+      - TZ=America/Sao_Paulo
       - NODE_ENV=production
-
+      - PORT=9993
+    ports:
+      - "9993:9993"
+    command:
+      - bash
+      - -c
+      - |
+        npm install &&
+        node server.js
