@@ -84,36 +84,39 @@ export async function openPunchModal(els, onToast){
     els.locationOptions.innerHTML = '<p class="hint">Buscando sua localização...</p>';
     els.confirmPunchBtn.disabled = false;
 
-    // Busca localização GPS atual
-    const position = await getCurrentPosition();
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
-    const accuracy = position.coords.accuracy;
-    const address = await reverseGeocode(lat, lng);
-
-    currentGPSLocation = {
-      latitude: lat,
-      longitude: lng,
-      address: address,
-      original_latitude: lat,
-      original_longitude: lng,
-      original_address: address,
-      location_edited: false,
-      accuracy: accuracy,
-      accuracy_method: null,
-      reference_id: null
-    };
-
-    selectedLocation = currentGPSLocation;
     const options = [];
 
-    options.push({
-      type: 'gps',
-      icon: '📍',
-      name: 'Localização atual (GPS)',
-      address: cleanAddress(address) || address,
-      data: currentGPSLocation
-    });
+    // Busca localização GPS atual (falhas devem ser silenciosas)
+    try {
+      const position = await getCurrentPosition();
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
+      const address = await reverseGeocode(lat, lng);
+
+      currentGPSLocation = {
+        latitude: lat,
+        longitude: lng,
+        address: address,
+        original_latitude: lat,
+        original_longitude: lng,
+        original_address: address,
+        location_edited: false,
+        accuracy: accuracy,
+        accuracy_method: null,
+        reference_id: null
+      };
+
+      options.push({
+        type: 'gps',
+        icon: '📍',
+        name: 'Localização atual (GPS)',
+        address: cleanAddress(address) || address,
+        data: currentGPSLocation
+      });
+    } catch (_) {
+      currentGPSLocation = null;
+    }
 
     if(lastPunchLocation && lastPunchLocation.address){
       options.push({
@@ -146,6 +149,9 @@ export async function openPunchModal(els, onToast){
         }
       });
     });
+
+    // Define seleção padrão com base nas opções disponíveis
+    selectedLocation = options.length > 0 ? options[0].data : null;
 
     // Renderiza todas as opções
     els.locationOptions.innerHTML = options.map((opt, idx) => `
