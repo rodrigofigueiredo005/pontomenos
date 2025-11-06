@@ -228,7 +228,13 @@ export function calcWorkedMsToday(cards){
 export function calcExpectedEnd(cards, targetHours = 8){
   if(!cards.length) return null;
   if(cards.length % 2 === 0) return null;
-  
+
+  // Se não tiver feito o intervalo intrajornada, soma o tempo fixo de 1 hora (almoço)
+  let mandatoryBreakMs = 0;
+  if(cards.length < 2) {
+    mandatoryBreakMs += 60 * 60 * 1000;
+  }
+
   const workedMs = calcWorkedMsToday(cards);
   const targetMs = targetHours * 60 * 60 * 1000;
   
@@ -236,7 +242,7 @@ export function calcExpectedEnd(cards, targetHours = 8){
     return new Date();
   }
   
-  const remainingMs = targetMs - workedMs;
+  const remainingMs = targetMs - workedMs + mandatoryBreakMs;
   return new Date(Date.now() + remainingMs);
 }
 
