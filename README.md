@@ -133,6 +133,7 @@ O projeto usa um **servidor único** (Express) que:
 # Desenvolvimento
 npm start                    # Inicia servidor
 npm run dev                  # Inicia com nodemon (auto-reload)
+npm test                     # Roda testes automatizados
 
 # Docker
 docker-compose up -d         # Inicia em background
