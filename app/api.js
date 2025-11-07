@@ -228,7 +228,30 @@ export function calcWorkedMsToday(cards){
 export function calcExpectedEnd(cards, targetHours = 8){
   if(!cards.length) return null;
   if(cards.length % 2 === 0) return null;
+
+  // Verifica se já foi feito o intervalo intrajornada de pelo menos 1 hora (CLT)
+  let mandatoryBreakMs = 0;
+  let hasValidBreak = false;
   
+  if(cards.length >= 2) {
+    const times = cards.map(c => parseDateTimeDMY(c.date, c.time));
+    // Verifica todas as pausas (pares de saída/entrada)
+    for(let i = 1; i < times.length; i += 2) {
+      if(i + 1 < times.length) {
+        const breakMs = times[i + 1].getTime() - times[i].getTime();
+        if(breakMs >= 60 * 60 * 1000) { // 1 hora ou mais
+          hasValidBreak = true;
+          break;
+        }
+      }
+    }
+  }
+  
+  // Se não tiver intervalo válido de 1h, adiciona ao tempo esperado
+  if(!hasValidBreak) {
+    mandatoryBreakMs = 60 * 60 * 1000;
+  }
+
   const workedMs = calcWorkedMsToday(cards);
   const targetMs = targetHours * 60 * 60 * 1000;
   
@@ -236,7 +259,7 @@ export function calcExpectedEnd(cards, targetHours = 8){
     return new Date();
   }
   
-  const remainingMs = targetMs - workedMs;
+  const remainingMs = targetMs - workedMs + mandatoryBreakMs;
   return new Date(Date.now() + remainingMs);
 }
 

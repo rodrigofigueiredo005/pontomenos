@@ -251,7 +251,24 @@ els.punchModal.addEventListener('click', (e) => {
 
 loadCfg();
 showScreen();
-if(isLoggedIn()){ refreshAll(); }
+if(isLoggedIn()){ 
+  // Verifica se foi aberto pelo shortcut de "Bater Ponto"
+  const urlParams = new URLSearchParams(window.location.search);
+  if(urlParams.get('action') === 'punch'){
+    toast('Carregando dados...');
+    
+    // Aguarda o refreshAll completar antes de abrir o modal
+    refreshAll().then(() => {
+      setTimeout(() => {
+        handlePunch();
+      }, 500);
+    }).catch(() => {
+      toast('Erro ao carregar. Tente novamente.');
+    });
+  } else {
+    refreshAll();
+  }
+}
 
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js')

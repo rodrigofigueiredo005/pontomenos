@@ -29,9 +29,9 @@
   "shortcuts": [
     {
       "name": "Bater Ponto",
-      "short_name": "Ponto",
+      "short_name": "Bater Ponto",
       "description": "Abrir e bater ponto rapidamente",
-      "url": "./index.html",
+      "url": "./index.html?action=punch",
       "icons": [
         {
           "src": "icons/icon-192.png",

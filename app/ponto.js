@@ -184,7 +184,6 @@ export function closePunchModal(els){
 export async function confirmPunch(els, onToast, onRefresh){
   try {
     const { PROXY_URL, USE_PROXY } = await import('./config.js');
-    const { CREDENTIALS } = await import('./credentials.js');
     
     if(!selectedLocation){
       onToast('Erro: Nenhuma localização selecionada');
@@ -194,13 +193,13 @@ export async function confirmPunch(els, onToast, onRefresh){
     els.confirmPunchBtn.disabled = true;
     onToast('Registrando ponto...');
 
-    const token = CREDENTIALS.HARDCODED_TOKEN || authData.token;
-    const client_id = CREDENTIALS.HARDCODED_CLIENT_ID || authData.client;
-    const login = CREDENTIALS.HARDCODED_LOGIN || authData.uid;
-    const uuid = CREDENTIALS.HARDCODED_UUID || deviceUUID;
-    const sign_in_count = CREDENTIALS.HARDCODED_SIGN_IN_COUNT || authData.signInCount;
-    const last_sign_in_ip = CREDENTIALS.HARDCODED_LAST_SIGN_IN_IP || authData.lastSignInIp;
-    const last_sign_in_at = CREDENTIALS.HARDCODED_LAST_SIGN_IN_AT || authData.lastSignInAt;
+    const token = authData.token;
+    const client_id = authData.client;
+    const login = authData.uid;
+    const uuid = deviceUUID;
+    const sign_in_count = authData.signInCount;
+    const last_sign_in_ip = authData.lastSignInIp;
+    const last_sign_in_at = authData.lastSignInAt;
 
     const payload = {
       image: null,
@@ -239,7 +238,8 @@ export async function confirmPunch(els, onToast, onRefresh){
             last_sign_in_at: last_sign_in_at
           },
           uuid: uuid,
-          authorization: `Bearer ${CREDENTIALS.BEARER_TOKEN}`
+          // O authorization será injetado pelo servidor (BEARER_TOKEN da ENV)
+          authorization: ''
         },
         version: "null"
       }
