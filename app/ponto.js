@@ -81,42 +81,19 @@ export async function openPunchModal(els, onToast){
     }
 
     els.punchModal.classList.add('show');
-    els.locationOptions.innerHTML = '<p class="hint">Buscando sua localização...</p>';
     els.confirmPunchBtn.disabled = false;
 
     const options = [];
 
-    // Busca localização GPS atual (falhas devem ser silenciosas)
-    try {
-      const position = await getCurrentPosition();
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      const accuracy = position.coords.accuracy;
-      const address = await reverseGeocode(lat, lng);
-
-      currentGPSLocation = {
-        latitude: lat,
-        longitude: lng,
-        address: address,
-        original_latitude: lat,
-        original_longitude: lng,
-        original_address: address,
-        location_edited: false,
-        accuracy: accuracy,
-        accuracy_method: null,
-        reference_id: null
-      };
-
-      options.push({
-        type: 'gps',
-        icon: '📍',
-        name: 'Localização atual (GPS)',
-        address: cleanAddress(address) || address,
-        data: currentGPSLocation
-      });
-    } catch (_) {
-      currentGPSLocation = null;
-    }
+    // Adiciona placeholder para localização GPS (será atualizado depois)
+    options.push({
+      type: 'gps',
+      icon: '📍',
+      name: 'Localização atual (GPS)',
+      address: 'Carregando localização...',
+      data: null,
+      isPlaceholder: true
+    });
 
     if(lastPunchLocation && lastPunchLocation.address){
       options.push({
@@ -150,25 +127,91 @@ export async function openPunchModal(els, onToast){
       });
     });
 
-    // Define seleção padrão com base nas opções disponíveis
-    selectedLocation = options.length > 0 ? options[0].data : null;
+    // Define seleção padrão (primeira opção não-placeholder ou null)
+    selectedLocation = options.find(opt => !opt.isPlaceholder)?.data || null;
 
-    // Renderiza todas as opções
-    els.locationOptions.innerHTML = options.map((opt, idx) => `
-      <div class="location-option ${idx === 0 ? 'selected' : ''}" data-option-index="${idx}">
-        <div class="name">${opt.icon} ${opt.name}</div>
-        <div class="addr">${opt.address}</div>
-      </div>
-    `).join('');
+    // Função para renderizar as opções
+    const renderOptions = () => {
+      els.locationOptions.innerHTML = options.map((opt, idx) => {
+        const isSelected = selectedLocation === opt.data && !opt.isPlaceholder;
+        const isDisabled = opt.isPlaceholder ? 'disabled' : '';
+        const opacity = opt.isPlaceholder ? 'style="opacity: 0.6; cursor: not-allowed;"' : '';
+        
+        return `
+          <div class="location-option ${isSelected ? 'selected' : ''} ${isDisabled}" 
+               data-option-index="${idx}" ${opacity}>
+            <div class="name">${opt.icon} ${opt.name}</div>
+            <div class="addr">${opt.address}</div>
+          </div>
+        `;
+      }).join('');
 
-    els.locationOptions.querySelectorAll('.location-option').forEach(opt => {
-      opt.addEventListener('click', () => {
-        els.locationOptions.querySelectorAll('.location-option').forEach(o => o.classList.remove('selected'));
-        opt.classList.add('selected');
-        const idx = parseInt(opt.dataset.optionIndex);
-        selectedLocation = options[idx].data;
+      // Adiciona event listeners
+      els.locationOptions.querySelectorAll('.location-option:not(.disabled)').forEach(opt => {
+        opt.addEventListener('click', () => {
+          els.locationOptions.querySelectorAll('.location-option').forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+          const idx = parseInt(opt.dataset.optionIndex);
+          selectedLocation = options[idx].data;
+        });
       });
-    });
+    };
+
+    // Renderiza opções iniciais
+    renderOptions();
+
+    // Busca localização GPS em segundo plano (não bloqueia o modal)
+    getCurrentPosition()
+      .then(async position => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
+        const address = await reverseGeocode(lat, lng);
+
+        currentGPSLocation = {
+          latitude: lat,
+          longitude: lng,
+          address: address,
+          original_latitude: lat,
+          original_longitude: lng,
+          original_address: address,
+          location_edited: false,
+          accuracy: accuracy,
+          accuracy_method: null,
+          reference_id: null
+        };
+
+        // Atualiza o placeholder com os dados reais
+        const gpsOptionIndex = options.findIndex(opt => opt.type === 'gps');
+        if(gpsOptionIndex !== -1) {
+          options[gpsOptionIndex] = {
+            type: 'gps',
+            icon: '📍',
+            name: 'Localização atual (GPS)',
+            address: cleanAddress(address) || address,
+            data: currentGPSLocation,
+            isPlaceholder: false
+          };
+
+          // Só seleciona o GPS se for a única opção disponível
+          const nonPlaceholderOptions = options.filter(opt => !opt.isPlaceholder);
+          if(nonPlaceholderOptions.length === 1) {
+            selectedLocation = currentGPSLocation;
+          }
+
+          // Re-renderiza as opções
+          renderOptions();
+        }
+      })
+      .catch(_ => {
+        // Remove o placeholder em caso de erro
+        const gpsOptionIndex = options.findIndex(opt => opt.type === 'gps');
+        if(gpsOptionIndex !== -1) {
+          options.splice(gpsOptionIndex, 1);
+          renderOptions();
+        }
+        currentGPSLocation = null;
+      });
 
   } catch(e){
     onToast('Erro ao obter localização');
