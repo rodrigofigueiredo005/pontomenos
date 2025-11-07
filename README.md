@@ -58,25 +58,50 @@ pontomaiscript/
 
 ## 🔧 Configuração
 
-### Porta
+### Variáveis de Ambiente
 
-Por padrão usa a porta `9993`. Para alterar:
+Copie o arquivo de exemplo e configure:
+
+```bash
+cp .env.example .env
+```
+
+Edite o `.env` e configure:
+
+```bash
+# Porta do servidor
+PORT=9993
+
+# Token Bearer da empresa (obrigatório para bater ponto)
+BEARER_TOKEN=seu_token_bearer_aqui
+```
+
+**Como obter o BEARER_TOKEN:**
+1. Acesse o PontoMais em um navegador
+2. Abra as ferramentas de desenvolvedor (F12)
+3. Vá na aba Network
+4. Bata um ponto
+5. Procure pela requisição `register`
+6. Copie o valor do header `authorization` (formato: `Bearer XXX`)
+
+### Executando com variáveis de ambiente
 
 ```bash
 # Local
-export PORT=8080
-npm start
+BEARER_TOKEN=seu_token npm start
 
-# Docker
-# Edite docker-compose.yml, seção environment
+# Ou use um arquivo .env
+npm start
 ```
 
-### Credenciais
+### Docker
 
-As credenciais ficam em `app/credentials.js`.
+Edite `docker-compose.yml` e adicione a variável:
 
-- Obrigatória: `BEARER_TOKEN` da empresa (usada para autenticar na API)
-- Opcionais: campos `HARDCODED_*`. Se preenchidos, o app usa esses valores; se vazios, o app tenta obter automaticamente pela API do PontoMais, a partir do login e senha da tela inicial.
+```yaml
+environment:
+  - BEARER_TOKEN=seu_token_bearer_aqui
+```
 
 Exemplo de configuração:
 

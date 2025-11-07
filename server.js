@@ -6,6 +6,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 9993;
+const BEARER_TOKEN = process.env.BEARER_TOKEN || '';
 
 // Middleware para CORS
 app.use((req, res, next) => {
@@ -33,8 +34,14 @@ app.get('/health', (req, res) => {
   res.json({ response: 'PontoMenos is alive', timestamp: new Date().toISOString() });
 });
 
-// Proxy para a API do PontoMais
+// Proxy para a API do PontoMais - INJETA O BEARER_TOKEN NO SERVIDOR
 app.post('/api/time_cards/register', (req, res) => {
+  // Injeta o BEARER_TOKEN no payload aqui no servidor (nunca exposto ao cliente)
+  const payload = req.body;
+  if (payload._device && payload._device.uuid && BEARER_TOKEN) {
+    payload._device.uuid.authorization = `Bearer ${BEARER_TOKEN}`;
+  }
+  
   const headers = {
     'client': req.headers['client'] || '',
     'access-token': req.headers['access-token'] || '',
@@ -73,7 +80,7 @@ app.post('/api/time_cards/register', (req, res) => {
     res.status(500).json({ error: 'Proxy error: ' + error.message });
   });
 
-  proxyReq.write(JSON.stringify(req.body));
+  proxyReq.write(JSON.stringify(payload));
   proxyReq.end();
 });
 
