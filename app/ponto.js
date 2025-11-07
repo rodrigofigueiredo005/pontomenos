@@ -5,6 +5,8 @@ let currentGPSLocation = null;
 export let lastPunchLocation = null;
 let deviceUUID = localStorage.getItem('device_uuid') || generateUUID();
 
+const PENDING_PUNCHES_KEY = 'pending_punches_v1';
+
 function generateUUID(){
   let it = (new Date).getTime();
   const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(Ft){
@@ -319,15 +321,32 @@ export async function confirmPunch(els, onToast, onRefresh){
     }
 
     console.log(`Ponto registrado [${res.status}]`);
+    
+    // Status 2xx significa sucesso - salva no localStorage
+    const now = new Date();
+    const pendingPunch = {
+      timestamp: now.getTime(),
+      date: `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`,
+      time: `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,
+      latitude: selectedLocation.latitude,
+      longitude: selectedLocation.longitude,
+      address: selectedLocation.address,
+      original_latitude: selectedLocation.original_latitude,
+      original_longitude: selectedLocation.original_longitude,
+      original_address: selectedLocation.original_address,
+      location_edited: selectedLocation.location_edited,
+      accuracy: selectedLocation.accuracy,
+      accuracy_method: selectedLocation.accuracy_method,
+      isPending: true
+    };
+    
+    savePendingPunch(pendingPunch);
+    
     onToast('Ponto registrado com sucesso!');
     closePunchModal(els);
     
-    if (res.status === 202) {
-      addTemporaryPunch(els, selectedLocation);
-      setTimeout(() => onRefresh(), 2000);
-    } else {
-      await onRefresh();
-    }
+    // Atualiza imediatamente para mostrar o ponto pendente
+    await onRefresh();
 
   } catch(e){
     console.error('Erro ao registrar ponto:', e.message);
@@ -340,33 +359,83 @@ export async function baterPonto(els, onToast){
   await openPunchModal(els, onToast);
 }
 
-function addTemporaryPunch(els, location){
-  const now = new Date();
-  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const dateStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
-  
-  els.ultimoPontoData.textContent = dateStr;
-  els.ultimoPontoHora.textContent = timeStr;
-  
-  const tempPunchHtml = `
-    <div class="punch-item" style="opacity: 0.7; border: 1px dashed #999;">
-      <div class="top">
-        <div class="time">${timeStr}</div>
-        <div class="type">Processando...</div>
-        <div class="badge">App Web</div>
-      </div>
-      ${(location && location.address) ? `<div class="location">📍 ${cleanAddress(location.address)}</div>` : ''}
-    </div>
-  `;
-  
-  if(els.punchList.querySelector('.punch-item')) {
-    els.punchList.insertAdjacentHTML('afterbegin', tempPunchHtml);
-  } else {
-    els.punchList.innerHTML = tempPunchHtml;
+export function setLastPunchLocation(location){
+  lastPunchLocation = location;
+}
+
+// ====== Funções para gerenciar pontos pendentes no localStorage ======
+
+function savePendingPunch(punchData){
+  try {
+    const pending = getPendingPunches();
+    pending.push(punchData);
+    localStorage.setItem(PENDING_PUNCHES_KEY, JSON.stringify(pending));
+  } catch(e) {
+    console.error('Erro ao salvar ponto pendente:', e);
   }
 }
 
-export function setLastPunchLocation(location){
-  lastPunchLocation = location;
+function getPendingPunches(){
+  try {
+    const data = localStorage.getItem(PENDING_PUNCHES_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch(e) {
+    console.error('Erro ao recuperar pontos pendentes:', e);
+    return [];
+  }
+}
+
+function clearPendingPunch(timestamp){
+  try {
+    let pending = getPendingPunches();
+    pending = pending.filter(p => p.timestamp !== timestamp);
+    localStorage.setItem(PENDING_PUNCHES_KEY, JSON.stringify(pending));
+  } catch(e) {
+    console.error('Erro ao limpar ponto pendente:', e);
+  }
+}
+
+// Mescla pontos da API com pontos pendentes do localStorage
+// Remove do localStorage os que já aparecem na API (com margem de ±2min)
+export function mergePunchesWithPending(apiCards){
+  const pending = getPendingPunches();
+  if(pending.length === 0) return apiCards;
+
+  const merged = [...apiCards];
+  const TWO_MINUTES_MS = 2 * 60 * 1000;
+
+  pending.forEach(pendingPunch => {
+    const pendingTime = new Date(pendingPunch.timestamp);
+    
+    // Verifica se já existe um ponto da API com horário similar (±2min)
+    const alreadyInAPI = apiCards.some(card => {
+      const cardTime = parsePunchDateTime(card.date, card.time);
+      const diff = Math.abs(cardTime.getTime() - pendingTime.getTime());
+      return diff <= TWO_MINUTES_MS;
+    });
+
+    if(alreadyInAPI) {
+      // Remove do localStorage pois já está na API
+      clearPendingPunch(pendingPunch.timestamp);
+    } else {
+      // Adiciona à lista mesclada
+      merged.push(pendingPunch);
+    }
+  });
+
+  // Ordena por horário
+  merged.sort((a, b) => {
+    const timeA = a.timestamp ? new Date(a.timestamp) : parsePunchDateTime(a.date, a.time);
+    const timeB = b.timestamp ? new Date(b.timestamp) : parsePunchDateTime(b.date, b.time);
+    return timeA.getTime() - timeB.getTime();
+  });
+
+  return merged;
+}
+
+function parsePunchDateTime(dateStr, timeStr){
+  const [d, m, y] = dateStr.split('/').map(Number);
+  const [hh, mm] = timeStr.split(':').map(Number);
+  return new Date(y, m - 1, d, hh, mm, 0);
 }
 

@@ -19,7 +19,8 @@ import {
   closePunchModal, 
   confirmPunch, 
   cleanAddress,
-  setLastPunchLocation 
+  setLastPunchLocation,
+  mergePunchesWithPending
 } from './ponto.js';
 
 const $$ = sel => document.querySelector(sel);
@@ -97,6 +98,9 @@ function renderPunchList(cards){
   const items = cards.map((card, idx) => {
     const types = ['Entrada', 'Saída', 'Entrada', 'Saída', 'Entrada', 'Saída'];
     const type = types[idx] || (idx % 2 === 0 ? 'Entrada' : 'Saída');
+    
+    // Verifica se é um ponto pendente do localStorage
+    const isPending = card.isPending === true;
     const method = card.software_method?.name || card.source?.name || '';
     const location = cleanAddress(card.address || '');
     
@@ -105,11 +109,18 @@ function renderPunchList(cards){
       shortMethod = "Ponto Físico";
     }
     
+    // Se for pendente, usa um estilo diferente
+    if(isPending) {
+      shortMethod = 'App Web';
+    }
+    
+    const pendingStyle = isPending ? 'border-left: 3px solid #4CAF50;' : '';
+    
     return `
-      <div class="punch-item">
+      <div class="punch-item" style="${pendingStyle}">
         <div class="top">
           <div class="time">${card.time}</div>
-          <div class="type">${type}</div>
+          <div class="type">${type}${isPending ? ' ⏳' : ''}</div>
           <div class="badge">${shortMethod}</div>
         </div>
         ${location ? `<div class="location">📍 ${location}</div>` : ''}
@@ -144,7 +155,11 @@ async function refreshAll(){
       els.ultimoPontoHora.textContent = '';
     }
 
-    const cards = await fetchWorkDay(todayISO, sess.employeeId || undefined);
+    const apiCards = await fetchWorkDay(todayISO, sess.employeeId || undefined);
+    
+    // Mescla pontos da API com pontos pendentes do localStorage
+    const cards = mergePunchesWithPending(apiCards);
+    
     const workedMs = calcWorkedMsToday(cards);
     els.horasHoje.textContent = msToHHMM(workedMs);
 
