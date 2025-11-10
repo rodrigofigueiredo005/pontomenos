@@ -412,10 +412,12 @@ export function mergePunchesWithPending(apiCards){
       return;
     }
     
-    // Verifica se já existe um ponto da API com horário posterior ao ponto pendente 
+    // Verifica se já existe um ponto da API com horário posterior similar (±2 minutos)
     const alreadyInAPI = apiCards.some(card => {
       const cardTime = parsePunchDateTime(card.date, card.time);
-      return cardTime >= new Date(pendingTime.getTime());
+      const diff = Math.abs(cardTime.getTime() - pendingTime.getTime());
+      const TWO_MINUTES_MS = 2 * 60 * 1000;
+      return diff <= TWO_MINUTES_MS;
     });
 
     if(alreadyInAPI) {
