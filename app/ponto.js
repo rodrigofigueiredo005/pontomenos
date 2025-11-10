@@ -402,16 +402,20 @@ export function mergePunchesWithPending(apiCards){
   if(pending.length === 0) return apiCards;
 
   const merged = [...apiCards];
-  const TWO_MINUTES_MS = 2 * 60 * 1000;
+  const TTL_MS = 15 * 60 * 1000;
 
   pending.forEach(pendingPunch => {
     const pendingTime = new Date(pendingPunch.timestamp);
+    if(Date.now() - pendingPunch.timestamp > TTL_MS) {
+      // Remove pontos pendentes com mais de 15 minutos
+      clearPendingPunch(pendingPunch.timestamp);
+      return;
+    }
     
-    // Verifica se já existe um ponto da API com horário similar (±2min)
+    // Verifica se já existe um ponto da API com horário posterior ao ponto pendente 
     const alreadyInAPI = apiCards.some(card => {
       const cardTime = parsePunchDateTime(card.date, card.time);
-      const diff = Math.abs(cardTime.getTime() - pendingTime.getTime());
-      return diff <= TWO_MINUTES_MS;
+      return cardTime >= new Date(pendingTime.getTime());
     });
 
     if(alreadyInAPI) {
